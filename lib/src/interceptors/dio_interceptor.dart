@@ -24,28 +24,32 @@ class ChuckerDioInterceptor extends Interceptor {
     Response<dynamic> response,
     ResponseInterceptorHandler handler,
   ) async {
-    await SharedPreferencesManager.getInstance().getSettings();
+    try {
+      await SharedPreferencesManager.getInstance().getSettings();
 
-    if (!ChuckerFlutter.isDebugMode && !ChuckerFlutter.showOnRelease) {
+      if (!ChuckerFlutter.isDebugMode && !ChuckerFlutter.showOnRelease) {
+        handler.next(response);
+        return;
+      }
+
+      final method = response.requestOptions.method;
+      final statusCode = response.statusCode ?? -1;
+      final path = response.requestOptions.path;
+
+      ChuckerUiHelper.showNotification(
+        method: method,
+        statusCode: statusCode,
+        path: path,
+        requestTime: _requestTime,
+      );
+
+      // await _saveResponse(response);
+      // log('ChuckerFlutter: $method:$path - $statusCode saved.');
+
       handler.next(response);
-      return;
+    } catch (_, __) {
+      handler.next(response);
     }
-
-    final method = response.requestOptions.method;
-    final statusCode = response.statusCode ?? -1;
-    final path = response.requestOptions.path;
-
-    ChuckerUiHelper.showNotification(
-      method: method,
-      statusCode: statusCode,
-      path: path,
-      requestTime: _requestTime,
-    );
-
-    await _saveResponse(response);
-
-    log('ChuckerFlutter: $method:$path - $statusCode saved.');
-    handler.next(response);
   }
 
   @override
@@ -53,26 +57,31 @@ class ChuckerDioInterceptor extends Interceptor {
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
-    await SharedPreferencesManager.getInstance().getSettings();
+    try {
+      await SharedPreferencesManager.getInstance().getSettings();
 
-    if (!ChuckerFlutter.isDebugMode && !ChuckerFlutter.showOnRelease) {
+      if (!ChuckerFlutter.isDebugMode && !ChuckerFlutter.showOnRelease) {
+        handler.next(err);
+        return;
+      }
+      final method = err.requestOptions.method;
+      final statusCode = err.response?.statusCode ?? -1;
+      final path = err.requestOptions.path;
+
+      ChuckerUiHelper.showNotification(
+        method: method,
+        statusCode: statusCode,
+        path: path,
+        requestTime: _requestTime,
+      );
+
+      // await _saveError(err);
+      // log('ChuckerFlutter: $method:$path - $statusCode saved.');
+
       handler.next(err);
-      return;
+    } catch (_, __) {
+      handler.next(err);
     }
-    final method = err.requestOptions.method;
-    final statusCode = err.response?.statusCode ?? -1;
-    final path = err.requestOptions.path;
-
-    ChuckerUiHelper.showNotification(
-      method: method,
-      statusCode: statusCode,
-      path: path,
-      requestTime: _requestTime,
-    );
-    await _saveError(err);
-
-    log('ChuckerFlutter: $method:$path - $statusCode saved.');
-    handler.next(err);
   }
 
   Future<void> _saveResponse(Response<dynamic> response) async {
